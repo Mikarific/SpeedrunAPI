@@ -1,7 +1,7 @@
 package me.contaria.speedrunapi.config.screen.widgets.list;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import me.contaria.speedrunapi.SpeedrunAPI;
 import me.contaria.speedrunapi.config.api.SpeedrunConfigScreenProvider;
 import me.contaria.speedrunapi.config.screen.SpeedrunModConfigsScreen;
@@ -32,6 +32,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.util.Collection;
 import java.util.List;
@@ -119,7 +120,7 @@ public class SpeedrunModConfigListWidget extends EntryListWidget<SpeedrunModConf
             boolean shouldAddComma = false;
             for (Person person : this.mod.getAuthors()) {
                 MutableText author = TextUtil.literal(person.getName());
-                person.getContact().get("homepage").ifPresent(link -> author.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, link)).withFormatting(Formatting.UNDERLINE)));
+                person.getContact().get("homepage").ifPresent(link -> author.styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(link))).withFormatting(Formatting.UNDERLINE)));
                 if (shouldAddComma) {
                     text.append(TextUtil.literal(", "));
                 }
@@ -140,7 +141,7 @@ public class SpeedrunModConfigListWidget extends EntryListWidget<SpeedrunModConf
         private void registerIcon() {
             this.mod.getIconPath(32).flatMap(this.modContainer::findPath).ifPresent(iconPath -> {
                 try (InputStream inputStream = Files.newInputStream(iconPath)) {
-                    SpeedrunModConfigListWidget.this.client.getTextureManager().registerTexture(this.icon, new NativeImageBackedTexture(NativeImage.read(inputStream)));
+                    SpeedrunModConfigListWidget.this.client.getTextureManager().registerTexture(this.icon, new NativeImageBackedTexture(iconPath::toString, NativeImage.read(inputStream)));
                     this.hasIcon = true;
                 } catch (IOException e) {
                     SpeedrunAPI.LOGGER.warn("Failed to load mod icon for {}.", this.mod.getId(), e);
@@ -176,9 +177,10 @@ public class SpeedrunModConfigListWidget extends EntryListWidget<SpeedrunModConf
                 yOffset += textRenderer.fontHeight;
             }
 
-            RenderSystem.enableBlend();
+
+            GlStateManager._enableBlend();
             context.drawTexture(RenderLayer::getGuiTextured, this.hasIcon ? this.icon : NO_MOD_ICON, x, y, 0.0f, 0.0f, 32, 32, 32, 32);
-            RenderSystem.disableBlend();
+            GlStateManager._disableBlend();
 
             if (client.options.getTouchscreen().getValue() || hovered) {
                 this.renderIfHovered(context, x, y, mouseX, mouseY);
